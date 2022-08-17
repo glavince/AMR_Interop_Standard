@@ -19,16 +19,16 @@
       "properties": {
         "x": { "type": "number" },
         "y": { "type": "number" },
-        "z": { 
-          "type": "number", 
+        "z": {
+          "type": "number",
           "default" : 0
         },
         "angle" : { "$ref": "#/definitions/quaternion" },
-        "planarDatum": { 
+        "planarDatum": {
           "description": "Id of planarDatum AMR is referencing",
           "type": "string",
           "format": "uuid",
-          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          "pattern": "^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
         }
       },
       "additionalProperties": false
@@ -38,32 +38,32 @@
       "type": "object",
       "required": ["timestamp", "x", "y", "angle"],
       "properties": {
-        "timestamp": { 
+        "timestamp": {
           "description": "Predicted UTC time AMR will reach this location",
-          "type": "string", 
-          "format": "date-time" 
+          "type": "string",
+          "format": "date-time"
         },
         "x": { "type": "number" },
         "y": { "type": "number" },
-        "z": { 
-          "type": "number", 
+        "z": {
+          "type": "number",
           "default" : 0
         },
         "angle" : { "$ref": "#/definitions/quaternion" },
-        "planarDatumUUID": { 
+        "planarDatumUUID": {
           "description": "Only necessary if different from AMRs current planarDatum",
           "type": "string",
           "format": "uuid",
-          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          "pattern": "^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
         }
-      }, 
+      },
       "additionalProperties": false
     }
   },
 
   "identityReport": {
     "type": "object",
-    "required": ["uuid", "timestamp", "manufacturerName", "robotModel", "robotSerialNumber", "baseRobotEnvelope"],
+    "required": ["uuid", "type", "timestamp", "manufacturerName", "robotModel", "robotSerialNumber", "baseRobotEnvelope"],
     "properties": {
       "uuid": {
         "description": "UUID specified by RFC4122 that all subsequent messages should reference",
@@ -71,79 +71,80 @@
         "format": "uuid",
         "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
       },
+      "type": {"type": "string"},
       "timestamp": { "type": "string", "format": "date-time" },
       "manufacturerName": { "type": "string" },
       "robotModel": { "type": "string" },
-      "robotSerialNumber": { 
+      "robotSerialNumber": {
         "description": "Unique robot identifier that ideally can be physically linked to the AMR",
         "type": "string" },
-      "baseRobotEnvelope": { 
+      "baseRobotEnvelope": {
         "description": "Footprint of robot based on orientation - centered on current location.",
         "type": "object",
         "required": ["x", "y"],
         "properties": {
           "x": { "type": "number" },
           "y": { "type": "number" },
-          "z": { 
-            "type": "number", 
+          "z": {
+            "type": "number",
             "default" : 0
           }
         },
         "additionalProperties": false
       },
-      "maxSpeed": { 
+      "maxSpeed": {
         "description": "Max robot speed in m/s",
-        "type": "number" 
+        "type": "number"
       },
-      "maxRunTime": { 
+      "maxRunTime": {
         "description": "Estimated Runtime in hours",
         "type": "number"
       },
-      "emergencyContactInformation": { 
+      "emergencyContactInformation": {
         "description": "Emergency Contact - preferrably phone number",
         "type": "string"
       },
-      "chargerType": { 
+      "chargerType": {
         "description": "Type of charger",
         "type": "string"
       },
-      "supportVendorName": { 
+      "supportVendorName": {
         "description": "Vendor that supplied robot",
         "type": "string"
       },
-      "supportVendorContactInformation": { 
+      "supportVendorContactInformation": {
         "description": "Contect information for vendor",
         "type": "string"
       },
-      "productDocumentation": { 
+      "productDocumentation": {
         "description": "Link to product documenation",
         "type": "string",
         "format": "uri"
       },
-      "thumbnailImage": { 
+      "thumbnailImage": {
         "description": "Link to thumbnail graphic stored as PNG",
         "type": "string",
         "format": "uri"
-      },      
-      "cargoType": { 
+      },
+      "cargoType": {
         "description": "Discription of cargo",
         "type": "string"
-      },      
-      "cargoMaxVolume": { 
+      },
+      "cargoMaxVolume": {
         "description": "Max volume of cargo in meters",
         "type": "object",
         "required": ["x", "y"],
         "properties": {
           "x": { "type": "number" },
           "y": { "type": "number" },
-          "z": { 
-            "type": "number", 
+          "z": {
+            "type": "number",
             "default" : 0
           }
         },
         "additionalProperties": false
       },
-      "cargoMaxWeight": { 
+      "cargoMaxWeight": {
         "description": "Max weight of cargo in kg",
         "type": "string"
       }
@@ -153,36 +154,37 @@
 
   "statusReport": {
     "type": "object",
-    "required": ["uuid", "timestamp", "operationalState", "location" ],
+    "required": ["uuid", "type", "timestamp", "operationalState", "location" ],
     "properties": {
       "uuid": {
         "description": "UUID specified in the identityAndCapability message",
         "type": "string",
         "format": "uuid",
-        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        "pattern": "^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
       },
+      "type": {"type": "string"},
       "timestamp": { "type": "string", "format": "date-time" },
-      "operationalState": { 
+      "operationalState": {
         "description": "Current action the robot is performing",
         "type": "string",
-        "enum": ["navigating", "idle", "disabled", "offline", "charging", "waitingHumanEvent", "waitingExternalEvent", "waitingInternalEvent", "manualOverride"] 
+        "enum": ["navigating", "idle", "disabled", "offline", "charging", "waitingHumanEvent", "waitingExternalEvent", "waitingInternalEvent", "manualOverride"]
       },
-      "location": { 
+      "location": {
         "description": "Current Location of AMR",
-        "$ref": "#/definitions/location" 
+        "$ref": "#/definitions/location"
       },
-      "velocity": { 
+      "velocity": {
         "description": "Current velocity of AMR",
         "type": "object",
         "required": ["linear"],
         "properties": {
-          "linear": { 
+          "linear": {
             "description": "Linear velocity in m/s in heading direction, forward is postive",
-            "type": "number" 
+            "type": "number"
           },
-          "angular" : { 
+          "angular" : {
             "description": "Angular velocity in quaternions per second",
-            "$ref": "#/definitions/quaternion" 
+            "$ref": "#/definitions/quaternion"
           }
         },
         "additionalProperties": false
@@ -207,15 +209,15 @@
       "errorCodes" : {
         "description": "List of current error states - should be omitted for normal operation",
         "type": "array",
-        "items": {             
+        "items": {
           "type": "string"
         },
         "uniqueItems": true
-      },       
+      },
       "destinations" : {
         "description": "Target destination(s) of AGV",
         "type": "array",
-        "items": {             
+        "items": {
           "$ref": "#/definitions/predictedLocation"
         },
         "maxItems": 10,
@@ -224,7 +226,7 @@
       "path" : {
         "description": "Short term path of AGV ~10 sec",
         "type": "array",
-        "items": {             
+        "items": {
           "$ref": "#/definitions/predictedLocation"
         },
         "maxItems": 10,

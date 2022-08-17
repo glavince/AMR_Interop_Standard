@@ -2,41 +2,108 @@ const _ = require('underscore');
 const bodyParser = require('body-parser');
 const testMessage = require('../schema/test-message.json');
 const schema = require('../schema/schema.json');
-const Ajv = require("ajv");
+const Ajv = require('ajv');
 const ajv = new Ajv({strictSchema: false});
-let validate = ajv.compile(schema);
-let UIsockets = {};
+const addFormats = require('ajv-formats');
+addFormats(ajv);
+const validate = ajv.compile(schema);
+
+const redis = require('redis');
+const subscriber = redis.createClient({url: "redis://localhost:6379"});
+const publisher = subscriber.duplicate();
+
+const MongoClient = require('mongodb').MongoClient;
+const url = "mongodb://localhost:27017/";
+const WS_UI_CHANNEL = "ws:UIChannel";
+
+const UISocketsMap = new Map();
+const RobotSocketsMap = new Map();
+
 
 module.exports = function(app) {
   app.use(bodyParser.json());
+
+  subscriber.on('message', (channel, message) => {
+    for (const [socketKey, socket] of UISocketsMap) {
+      try {
+        if (socket.readyState !== 1) {
+          throw 'Not sending message because websocket is not open'
+        }
+        socket.send(message);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+  });
 
   app.ws('/ui', function(ws, req) {
     console.log('UI has connected via websocket');
     let socketId = new Date().getTime();
     console.log(`UI websocket has id ${socketId}`);
-    UIsockets[socketId] = ws;
+    UISocketsMap.set(socketId, ws);
+    subscriber.subscribe(WS_UI_CHANNEL);
 
     ws.on('message', (msg) => {
       console.log('Recieved a test message from UI');
-      processMessage(msg);
+      const message = validateMessage(msg)
+      publisher.publish(WS_UI_CHANNEL, JSON.stringify(message));
     });
 
     ws.on('close', (code, reason) => {
       console.log('UI Websocket has closed.');
-      delete UIsockets[socketId];
+      UISocketsMap.delete(socketId);
     });
   });
 
-  app.ws('', function(ws, req) {
-    console.log('Robot has connected via websocket');
+  app.ws('/', function(ws, req) {
+    let socketId = new Date().getTime();
+    RobotSocketsMap.set(socketId, ws)
+    subscriber.subscribe(WS_UI_CHANNEL);
 
-    ws.on('message', (msg) => {
+    ws.on('message', function(msg) {
       console.log('Recieved a message from the robot');
-      processMessage(msg);
+      const message = validateMessage(msg)
+      publisher.publish(WS_UI_CHANNEL, JSON.stringify(message));
+      if (message.isValid === false) {
+        return;
+      }
+
+      msg = JSON.parse(msg)
+      const uuid = msg.uuid;
+      RobotSocketsMap.get(socketId).uuid = uuid;
+
+      if (msg.type === 'Robot Identity') {
+        MongoClient.connect(url, function(err, db) {
+          if (err) throw err;
+          var dbo = db.db('vecna');
+          const query = { uuid: uuid };
+          const update = { $set: msg };
+          const options = { upsert: true };
+          dbo.collection('robot_identity').updateOne(query, update, options);
+        });
+      }
+      if (msg.type === 'Robot Status') {
+        MongoClient.connect(url, function(err, db) {
+          if (err) throw err;
+          var dbo = db.db('vecna');
+          const query = { uuid: uuid };
+          const update = { $set: msg };
+          const options = { upsert: true };
+          dbo.collection('robot_status').updateOne(query, update, options);
+        });
+      }
     });
 
     ws.on('close', (code, reason) => {
-      console.log('Robot Websocket has closed.');
+      const uuid = RobotSocketsMap.get(socketId).uuid;
+      console.log('Robot Websocket has closed.', uuid);
+      RobotSocketsMap.delete(socketId)
+      MongoClient.connect(url, function(err, db) {
+        if (err) throw err;
+        var dbo = db.db('vecna');
+        dbo.collection('robot_status').deleteOne({uuid: uuid});
+        dbo.collection('robot_identity').deleteOne({uuid: uuid});
+      });
     });
   });
 
@@ -45,7 +112,7 @@ module.exports = function(app) {
   });
 };
 
-function processMessage(msg) {
+function validateMessage(msg) {
   let hasWellFormedJSON = false;
   let message = {};
   let errors = {};
@@ -68,23 +135,10 @@ function processMessage(msg) {
       errors = validate.errors;
     }
   }
-  _.each(UIsockets, (socket) => {
-    sendMessage(socket, {
-      message: message,
-      isValid: result,
-      errors: errors
-    });
-  });
-}
 
-function sendMessage(ws, data = {}) {
-  try {
-    if (ws.readyState != 1) {
-      console.log('Not sending message because websocket is not open');
-      return;
-    }
-    ws.send(JSON.stringify(data));
-  } catch (e) {
-    console.error(e);
+  return {
+    message: message,
+    isValid: result,
+    errors: errors
   }
 }

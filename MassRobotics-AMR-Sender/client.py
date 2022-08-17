@@ -17,7 +17,7 @@ OPERATIONAL_STATES = ["navigating", "idle", "disabled", "offline", "charging",
 async def sendMessage(uri):
   async with websockets.connect(uri) as websocket:
     # These could come from a configuration file or environment variables or any other source, but they are assumed not to change!
-    identity = {"manufacturerName": "Mass Robotics AMR", "robotModel": "AMR-01", "robotSerialNumber": "0000001", "baseRobotEnvelope": {"x": 0.5, "y": 1}}
+    identity = {"type": "Robot Identity", "manufacturerName": "Mass Robotics AMR", "robotModel": "AMR-01", "robotSerialNumber": "0000001", "baseRobotEnvelope": {"x": 0.5, "y": 1}}
 
     # Generate a uuid that will be consistent for this robot
     m = hashlib.md5()
@@ -32,7 +32,11 @@ async def sendMessage(uri):
     # Send the identity message once
     await websocket.send(json.dumps(identity))
 
-    status = {"uuid": str(uid)}
+    status = {
+      "uuid": str(uid),
+      "type": "Robot Status"
+    }
+
     while True:
       nowDt = datetime.now(timezone.utc)
       now = nowDt.timestamp()
@@ -87,4 +91,11 @@ uri = "ws://localhost:3000"
 if len(sys.argv) > 1:
   # Read the receiver URI from the command line, if provided.
   uri = sys.argv[1]
-asyncio.get_event_loop().run_until_complete(sendMessage(uri))
+# asyncio.get_event_loop().run_until_complete(sendMessage(uri))
+if __name__ == "__main__":
+    try:
+        asyncio.run(
+            sendMessage(uri)
+        )
+    except KeyboardInterrupt:
+        pass
