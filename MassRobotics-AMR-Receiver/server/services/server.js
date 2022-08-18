@@ -13,7 +13,7 @@ const subscriber = redis.createClient({url: "redis://localhost:6379"});
 const publisher = subscriber.duplicate();
 
 const MongoClient = require('mongodb').MongoClient;
-const url = "mongodb://localhost:27017/";
+const MongoUrl = process.env.MONGO_URL || "mongodb://localhost:27017/";
 const WS_UI_CHANNEL = "ws:UIChannel";
 
 const UISocketsMap = new Map();
@@ -73,7 +73,7 @@ module.exports = function(app) {
       RobotSocketsMap.get(socketId).uuid = uuid;
 
       if (msg.type === 'Robot Identity') {
-        MongoClient.connect(url, function(err, db) {
+        MongoClient.connect(MongoUrl, function(err, db) {
           if (err) throw err;
           var dbo = db.db('vecna');
           const query = { uuid: uuid };
@@ -83,7 +83,7 @@ module.exports = function(app) {
         });
       }
       if (msg.type === 'Robot Status') {
-        MongoClient.connect(url, function(err, db) {
+        MongoClient.connect(MongoUrl, function(err, db) {
           if (err) throw err;
           var dbo = db.db('vecna');
           const query = { uuid: uuid };
@@ -98,7 +98,7 @@ module.exports = function(app) {
       const uuid = RobotSocketsMap.get(socketId).uuid;
       console.log('Robot Websocket has closed.', uuid);
       RobotSocketsMap.delete(socketId)
-      MongoClient.connect(url, function(err, db) {
+      MongoClient.connect(MongoUrl, function(err, db) {
         if (err) throw err;
         var dbo = db.db('vecna');
         dbo.collection('robot_status').deleteOne({uuid: uuid});
