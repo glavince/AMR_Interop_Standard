@@ -17,7 +17,7 @@ OPERATIONAL_STATES = ["navigating", "idle", "disabled", "offline", "charging",
 async def sendMessage(uri):
   async with websockets.connect(uri) as websocket:
     # These could come from a configuration file or environment variables or any other source, but they are assumed not to change!
-    identity = {"type": "Robot Identity", "manufacturerName": "Mass Robotics AMR", "robotModel": "AMR-01", "robotSerialNumber": "0000001", "baseRobotEnvelope": {"x": 0.5, "y": 1}}
+    identity = {"type": "AGENT_IDENTITY", "manufacturerName": "Mass Robotics AMR", "robotModel": "AMR-01", "robotSerialNumber": "0000001", "baseRobotEnvelope": {"x": 0.5, "y": 1}}
 
     # Generate a uuid that will be consistent for this robot
     m = hashlib.md5()
@@ -34,7 +34,7 @@ async def sendMessage(uri):
 
     status = {
       "uuid": str(uid),
-      "type": "Robot Status"
+      "type": "AGENT_STATUS"
     }
 
     while True:
@@ -87,7 +87,7 @@ async def sendMessage(uri):
       # Wait for 1 second
       time.sleep(1)
 
-uri = "ws://localhost:3000"
+uri = "ws://localhost:3000/interop-socket"
 if len(sys.argv) > 1:
   # Read the receiver URI from the command line, if provided.
   uri = sys.argv[1]

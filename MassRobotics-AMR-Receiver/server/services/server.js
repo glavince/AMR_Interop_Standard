@@ -9,34 +9,38 @@ addFormats(ajv);
 const validate = ajv.compile(schema);
 
 const redis = require('redis');
-const subscriber = redis.createClient({url: "redis://localhost:6379"});
+const subscriber = redis.createClient({url: 'redis://localhost:6379'});
 const publisher = subscriber.duplicate();
 
 const MongoClient = require('mongodb').MongoClient;
-const MongoUrl = process.env.MONGO_URL || "mongodb://localhost:27017/";
-const WS_UI_CHANNEL = "ws:UIChannel";
+const MongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/';
+const WS_UI_CHANNEL = 'ws:UIChannel';
 
 const UISocketsMap = new Map();
-const RobotSocketsMap = new Map();
+const AgentSocketsMap = new Map();
 
 
-module.exports = function(app) {
+module.exports = (app) => {
   app.use(bodyParser.json());
 
   subscriber.on('message', (channel, message) => {
-    for (const [socketKey, socket] of UISocketsMap) {
-      try {
-        if (socket.readyState !== 1) {
-          throw 'Not sending message because websocket is not open'
+
+    if (channel === WS_UI_CHANNEL) {
+      for (const [socketKey, socket] of UISocketsMap) {
+        try {
+          if (socket.readyState !== 1) {
+            throw 'Not sending message because websocket is not open'
+          }
+          socket.send(message);
+        } catch (e) {
+          console.error(e);
         }
-        socket.send(message);
-      } catch (e) {
-        console.error(e);
-      }
-    };
+      };
+    }
+
   });
 
-  app.ws('/ui', function(ws, req) {
+  app.ws('/ui', (ws, req) => {
     console.log('UI has connected via websocket');
     let socketId = new Date().getTime();
     console.log(`UI websocket has id ${socketId}`);
@@ -55,64 +59,44 @@ module.exports = function(app) {
     });
   });
 
-  app.ws('/', function(ws, req) {
-    let socketId = new Date().getTime();
-    RobotSocketsMap.set(socketId, ws)
+  app.ws('/interop-socket', (ws, req) => {
+    let uuid = undefined;
     subscriber.subscribe(WS_UI_CHANNEL);
 
-    ws.on('message', function(msg) {
-      console.log('Recieved a message from the robot');
-      const message = validateMessage(msg)
+    ws.on('message', async (msg) => {
+      console.log('Recieved a message from the agent.');
+      const message = validateMessage(msg);
       publisher.publish(WS_UI_CHANNEL, JSON.stringify(message));
       if (message.isValid === false) {
-        return;
-      }
-
-      msg = JSON.parse(msg)
-      const uuid = msg.uuid;
-      RobotSocketsMap.get(socketId).uuid = uuid;
-
-      if (msg.type === 'Robot Identity') {
-        MongoClient.connect(MongoUrl, function(err, db) {
-          if (err) throw err;
-          var dbo = db.db('vecna');
-          const query = { uuid: uuid };
-          const update = { $set: msg };
-          const options = { upsert: true };
-          dbo.collection('robot_identity').updateOne(query, update, options);
-        });
-      }
-      if (msg.type === 'Robot Status') {
-        MongoClient.connect(MongoUrl, function(err, db) {
-          if (err) throw err;
-          var dbo = db.db('vecna');
-          const query = { uuid: uuid };
-          const update = { $set: msg };
-          const options = { upsert: true };
-          dbo.collection('robot_status').updateOne(query, update, options);
-        });
+        console.log('Not valid message.');
+        ws.send(JSON.stringify(message));
+      } else {
+        uuid = message.message.uuid;
+        AgentSocketsMap.set(uuid, ws);
+        await processMessage(uuid, msg)
+        .catch(e => console.log(e));
       }
     });
 
-    ws.on('close', (code, reason) => {
-      const uuid = RobotSocketsMap.get(socketId).uuid;
-      console.log('Robot Websocket has closed.', uuid);
-      RobotSocketsMap.delete(socketId)
-      MongoClient.connect(MongoUrl, function(err, db) {
-        if (err) throw err;
-        var dbo = db.db('vecna');
-        dbo.collection('robot_status').deleteOne({uuid: uuid});
-        dbo.collection('robot_identity').deleteOne({uuid: uuid});
-      });
+    ws.on('close', async (code, reason) => {
+      console.log('Agent Websocket has closed.', uuid);
+      if (uuid === undefined) {
+        return;
+      }
+      AgentSocketsMap.delete(uuid);
+      const db = await MongoClient.connect(MongoUrl);
+      const dbo = db.db('vecna');
+      await dbo.collection('agent_identity').deleteOne({uuid: uuid});
+      await dbo.collection('agent_status').deleteOne({uuid: uuid});
     });
   });
 
-  app.get('/test-message', function(req, res) {
+  app.get('/test-message', (req, res) => {
     res.send(testMessage);
   });
 };
 
-function validateMessage(msg) {
+const validateMessage = (msg) => {
   let hasWellFormedJSON = false;
   let message = {};
   let errors = {};
@@ -141,4 +125,25 @@ function validateMessage(msg) {
     isValid: result,
     errors: errors
   }
-}
+};
+
+const processMessage = async (uuid, msg) => {
+  const message = JSON.parse(msg);
+
+  if (message.type === 'AGENT_IDENTITY') {
+    const db = await MongoClient.connect(MongoUrl);
+    const dbo = db.db('vecna');
+    const query = { uuid: uuid };
+    const update = { $set: message };
+    const options = { upsert: true };
+    await dbo.collection('agent_identity').updateOne(query, update, options);
+  }
+  if (message.type === 'AGENT_STATUS') {
+    const db = await MongoClient.connect(MongoUrl);
+    const dbo = db.db('vecna');
+    const query = { uuid: uuid };
+    const update = { $set: message };
+    const options = { upsert: true };
+    await dbo.collection('agent_status').updateOne(query, update, options);
+  }
+};

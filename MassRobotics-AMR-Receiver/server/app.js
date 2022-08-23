@@ -30,6 +30,6 @@ if (cluster.isMaster) {
   });
 } else {
   app.listen(port, function() {
-    console.log(`Starting MassRobotics Interoperability Working Group schema validator service. Listening on port ${port}`);
+    console.log(`Starting MassRobotics Interoperability Working Group schema validator service. Listening on port: ${port}, pid: ${process.pid}`);
   });
 }

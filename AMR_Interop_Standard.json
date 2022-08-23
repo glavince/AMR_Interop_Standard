@@ -71,7 +71,7 @@
         "format": "uuid",
         "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
       },
-      "type": {"type": "string"},
+      "type": {"type": "string", "pattern": "AGENT_IDENTITY"},
       "timestamp": { "type": "string", "format": "date-time" },
       "manufacturerName": { "type": "string" },
       "robotModel": { "type": "string" },
@@ -162,7 +162,7 @@
         "format": "uuid",
         "pattern": "^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
       },
-      "type": {"type": "string"},
+      "type": {"type": "string", "pattern": "AGENT_STATUS"},
       "timestamp": { "type": "string", "format": "date-time" },
       "operationalState": {
         "description": "Current action the robot is performing",
