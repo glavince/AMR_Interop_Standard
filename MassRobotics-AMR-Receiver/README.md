@@ -1,5 +1,9 @@
 ## Installation
 
+Install [Redis](https://redis.io/docs/getting-started/installation/install-redis-on-linux/)
+
+Install [Mongodb](https://www.mongodb.com/docs/v6.0/tutorial/install-mongodb-on-ubuntu/)
+
 Download linux node binaries [here](https://nodejs.org/dist/v14.16.0/node-v14.16.0-linux-x64.tar.xz)(other OS/versions may also work, but this is the only tested version).
 
 Follow the instructions [here](https://github.com/nodejs/help/wiki/Installation#how-to-install-nodejs-via-binary-archive-on-linux),
