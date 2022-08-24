@@ -20,10 +20,10 @@ const UISocketsMap = new Map();
 const AgentSocketsMap = new Map();
 
 
-module.exports = (app) => {
+module.exports = async (app) => {
   app.use(bodyParser.json());
 
-  subscriber.on('message', (channel, message) => {
+  await subscriber.on('message', (channel, message) => {
 
     if (channel === WS_UI_CHANNEL) {
       for (const [socketKey, socket] of UISocketsMap) {
@@ -40,17 +40,17 @@ module.exports = (app) => {
 
   });
 
-  app.ws('/ui', (ws, req) => {
+  app.ws('/ui', async (ws, req) => {
     console.log('UI has connected via websocket');
     let socketId = new Date().getTime();
     console.log(`UI websocket has id ${socketId}`);
     UISocketsMap.set(socketId, ws);
-    subscriber.subscribe(WS_UI_CHANNEL);
+    await subscriber.subscribe(WS_UI_CHANNEL);
 
-    ws.on('message', (msg) => {
+    ws.on('message', async (msg) => {
       console.log('Recieved a test message from UI');
       const message = validateMessage(msg)
-      publisher.publish(WS_UI_CHANNEL, JSON.stringify(message));
+      await publisher.publish(WS_UI_CHANNEL, JSON.stringify(message));
     });
 
     ws.on('close', (code, reason) => {
@@ -59,14 +59,14 @@ module.exports = (app) => {
     });
   });
 
-  app.ws('/interop-socket', (ws, req) => {
+  app.ws('/interop-socket', async (ws, req) => {
     let uuid = undefined;
-    subscriber.subscribe(WS_UI_CHANNEL);
+    await subscriber.subscribe(WS_UI_CHANNEL);
 
     ws.on('message', async (msg) => {
       console.log('Recieved a message from the agent.');
       const message = validateMessage(msg);
-      publisher.publish(WS_UI_CHANNEL, JSON.stringify(message));
+      await publisher.publish(WS_UI_CHANNEL, JSON.stringify(message));
       if (message.isValid === false) {
         console.log('Not valid message.');
         ws.send(JSON.stringify(message));
