@@ -12,8 +12,9 @@ const redis = require('redis');
 const subscriber = redis.createClient({url: 'redis://localhost:6379'});
 const publisher = subscriber.duplicate();
 
-const MongoClient = require('mongodb').MongoClient;
+const { MongoClient } = require('mongodb');
 const MongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/';
+const dbClient = new MongoClient(MongoUrl);
 const WS_UI_CHANNEL = 'ws:UIChannel';
 
 const UISocketsMap = new Map();
@@ -84,10 +85,14 @@ module.exports = async (app) => {
         return;
       }
       AgentSocketsMap.delete(uuid);
-      const db = await MongoClient.connect(MongoUrl);
-      const dbo = db.db('vecna');
-      await dbo.collection('agent_identity').deleteOne({uuid: uuid});
-      await dbo.collection('agent_status').deleteOne({uuid: uuid});
+      try {
+        await dbClient.connect();
+        const database = dbClient.db('vecna');
+        await database.collection('agent_identity').deleteOne({uuid: uuid});
+        await database.collection('agent_status').deleteOne({uuid: uuid});
+      } finally {
+        await dbClient.close();
+      }
     });
   });
 
@@ -131,19 +136,27 @@ const processMessage = async (uuid, msg) => {
   const message = JSON.parse(msg);
 
   if (message.type === 'AGENT_IDENTITY') {
-    const db = await MongoClient.connect(MongoUrl);
-    const dbo = db.db('vecna');
-    const query = { uuid: uuid };
-    const update = { $set: message };
-    const options = { upsert: true };
-    await dbo.collection('agent_identity').updateOne(query, update, options);
+    try {
+      await dbClient.connect();
+      const database = dbClient.db('vecna');
+      const query = { uuid: uuid };
+      const update = { $set: message };
+      const options = { upsert: true };
+      await database.collection('agent_identity').updateOne(query, update, options);
+    } finally {
+      await dbClient.close();
+    }
   }
   if (message.type === 'AGENT_STATUS') {
-    const db = await MongoClient.connect(MongoUrl);
-    const dbo = db.db('vecna');
-    const query = { uuid: uuid };
-    const update = { $set: message };
-    const options = { upsert: true };
-    await dbo.collection('agent_status').updateOne(query, update, options);
+    try {
+      await dbClient.connect();
+      const database = dbClient.db('vecna');
+      const query = { uuid: uuid };
+      const update = { $set: message };
+      const options = { upsert: true };
+      await database.collection('agent_status').updateOne(query, update, options);
+    } finally {
+      await dbClient.close();
+    }
   }
 };
