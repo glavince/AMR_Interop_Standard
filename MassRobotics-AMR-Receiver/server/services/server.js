@@ -24,7 +24,9 @@ const AgentSocketsMap = new Map();
 module.exports = async (app) => {
   app.use(bodyParser.json());
 
-  await subscriber.on('message', (channel, message) => {
+  await subscriber.subscribe(WS_UI_CHANNEL);
+
+  subscriber.on('message', (channel, message) => {
 
     if (channel === WS_UI_CHANNEL) {
       for (const [socketKey, socket] of UISocketsMap) {
@@ -44,9 +46,8 @@ module.exports = async (app) => {
   app.ws('/ui', async (ws, req) => {
     console.log('UI has connected via websocket');
     let socketId = new Date().getTime();
-    console.log(`UI websocket has id ${socketId}`);
+    console.log(`UI websocket has id ${socketId}, pid ${process.pid}`);
     UISocketsMap.set(socketId, ws);
-    await subscriber.subscribe(WS_UI_CHANNEL);
 
     ws.on('message', async (msg) => {
       console.log('Recieved a test message from UI');
@@ -62,7 +63,6 @@ module.exports = async (app) => {
 
   app.ws('/interop-socket', async (ws, req) => {
     let uuid = undefined;
-    await subscriber.subscribe(WS_UI_CHANNEL);
 
     ws.on('message', async (msg) => {
       console.log('Recieved a message from the agent.');
