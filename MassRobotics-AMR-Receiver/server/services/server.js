@@ -20,6 +20,7 @@ const WS_UI_CHANNEL = 'ws:UIChannel';
 const UISocketsMap = new Map();
 const AgentSocketsMap = new Map();
 
+const DB_NAME = 'amr_interop';
 
 module.exports = async (app) => {
   app.use(bodyParser.json());
@@ -87,7 +88,7 @@ module.exports = async (app) => {
       AgentSocketsMap.delete(uuid);
       try {
         await dbClient.connect();
-        const database = dbClient.db('vecna');
+        const database = dbClient.db(DB_NAME);
         await database.collection('agent_identity').deleteOne({uuid: uuid});
         await database.collection('agent_status').deleteOne({uuid: uuid});
       } finally {
@@ -138,7 +139,7 @@ const processMessage = async (uuid, msg) => {
   if (message.type === 'AGENT_IDENTITY') {
     try {
       await dbClient.connect();
-      const database = dbClient.db('vecna');
+      const database = dbClient.db(DB_NAME);
       const query = { uuid: uuid };
       const update = { $set: message };
       const options = { upsert: true };
@@ -150,7 +151,7 @@ const processMessage = async (uuid, msg) => {
   if (message.type === 'AGENT_STATUS') {
     try {
       await dbClient.connect();
-      const database = dbClient.db('vecna');
+      const database = dbClient.db(DB_NAME);
       const query = { uuid: uuid };
       const update = { $set: message };
       const options = { upsert: true };
