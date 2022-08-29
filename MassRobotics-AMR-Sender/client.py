@@ -88,7 +88,6 @@ async def sendMessage(uri):
       time.sleep(1)
 
 uri = "ws://localhost:3000/interop-socket"
-# uri = "ws://34.123.24.185:3000/interop-socket"
 if len(sys.argv) > 1:
   # Read the receiver URI from the command line, if provided.
   uri = sys.argv[1]
